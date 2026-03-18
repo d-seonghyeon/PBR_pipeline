@@ -18,15 +18,6 @@ ExternalProject_Add(
 set(DEP_LIST ${DEP_LIST} dep_spdlog)
 set(DEP_LIST ${DEP_LIST} dep_spdlog)
 
-if(WIN32)
-    # 디버그 모드일 때는 spdlogd, 릴리즈 모드일 때는 spdlog를 사용하도록 설정
-    set(DEP_LIBS ${DEP_LIBS} 
-        $<$<CONFIG:Debug>:spdlogd> 
-        $<$<NOT:$<CONFIG:Debug>>:spdlog>
-    )
-else()
-    set(DEP_LIBS ${DEP_LIBS} spdlog)
-endif()
 
 # 2. stb (디렉토리 생성 명령 분리)
 ExternalProject_Add(
