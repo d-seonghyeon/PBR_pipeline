@@ -16,9 +16,11 @@ public:
 private:
     Program() {}
     bool Init(ID3D11Device* device, ShaderPtr vs, ShaderPtr ps);
+    bool CreateDefaultSampler(ID3D11Device* device);
 
     ComPtr<ID3D11VertexShader> m_vs;
     ComPtr<ID3D11PixelShader> m_ps;
+    ComPtr<ID3D11SamplerState> m_defaultSampler;
 };
 
 #endif // __PROGRAM_H__

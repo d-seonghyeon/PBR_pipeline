@@ -2,18 +2,76 @@
 #include <spdlog/spdlog.h>
 #include "context.h"
 
-// 전역 변수 (DirectX 핵심 자원들)
+//// 전역 변수 (DirectX 핵심 자원들)
 ID3D11Device* g_device = nullptr;
 ID3D11DeviceContext* g_context = nullptr;
 IDXGISwapChain* g_swapChain = nullptr;
 ID3D11RenderTargetView* g_renderTargetView = nullptr;
 ContextUPtr g_appContext = nullptr;
+//HWND: 윈도우를 만들거나 메시지를 보낼때 사용하는 식별자
+
+uint32_t g_width = WINDOW_WIDTH;
+uint32_t g_height = WINDOW_HEIGHT;
+
+void RenderFrame();
+
+void Resize(UINT width, UINT height)
+{
+    // 1. 장치가 아직 없거나, 창이 최소화되었을 때 실행x
+    if (!g_device || !g_context || !g_swapChain)
+        return;
+
+    if (width == 0 || height == 0)
+        return;
+
+    // 2. 기존 RTV 해제 (렌더 타겟을 물고 있으면 스왑체인 리사이즈가 실패함)
+    g_context->OMSetRenderTargets(0, nullptr, nullptr);
+
+    if (g_renderTargetView)
+    {
+        g_renderTargetView->Release();
+        g_renderTargetView = nullptr;
+    }
+
+    // 3. SwapChain 버퍼 리사이즈
+    HRESULT hr = g_swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+    if (FAILED(hr)) {
+        SPDLOG_ERROR("ResizeBuffers Failed!");
+        return;
+    }
+
+    // 4. 새 백버퍼 가져오기 및 RTV 재생성
+    ID3D11Texture2D* backBuffer = nullptr;
+    g_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&backBuffer);
+
+    g_device->CreateRenderTargetView(backBuffer, nullptr, &g_renderTargetView);
+    backBuffer->Release();
+    
+    SPDLOG_INFO("Window Resized: {}x{}", width, height);
+}
+
 
 // 윈도우 프로시저 (메시지 처리)
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-    if (message == WM_DESTROY) {
-        PostQuitMessage(0);
-        return 0;
+    
+    switch (message)
+    {
+        case WM_DESTROY:
+        {
+            PostQuitMessage(0);
+            return 0;
+        }
+        case WM_SIZE:
+        {
+            g_width = LOWORD(lParam);
+            g_height = HIWORD(lParam);
+
+            if(g_device){
+                Resize(g_width, g_height);
+                RenderFrame();
+            }
+            break;
+        }
     }
     return DefWindowProc(hWnd, message, wParam, lParam);
 }
@@ -22,8 +80,8 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 bool InitDirectX(HWND hWnd) {
     DXGI_SWAP_CHAIN_DESC sd = {};
     sd.BufferCount = 1;
-    sd.BufferDesc.Width = 1280;
-    sd.BufferDesc.Height = 720;
+    sd.BufferDesc.Width = g_width;
+    sd.BufferDesc.Height = g_height;
     sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     sd.BufferDesc.RefreshRate.Numerator = 60;
     sd.BufferDesc.RefreshRate.Denominator = 1;
@@ -38,18 +96,57 @@ bool InitDirectX(HWND hWnd) {
 
     // 1. 디바이스 및 스왑 체인 생성
     HRESULT hr = D3D11CreateDeviceAndSwapChain(
-        nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags,
-        nullptr, 0, D3D11_SDK_VERSION, &sd, &g_swapChain, &g_device, nullptr, &g_context
+        nullptr, 
+        D3D_DRIVER_TYPE_HARDWARE, 
+        nullptr, 
+        createDeviceFlags,
+        nullptr, 
+        0, 
+        D3D11_SDK_VERSION, 
+        &sd, 
+        &g_swapChain, 
+        &g_device, 
+        nullptr, 
+        &g_context
     );
     if (FAILED(hr)) return false;
 
-    // 2. 렌더 타겟 뷰(도화지) 생성
+    // 2. 렌더 타겟 뷰
     ID3D11Texture2D* pBackBuffer = nullptr;
     g_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBuffer);
-    g_device->CreateRenderTargetView(pBackBuffer, nullptr, &g_renderTargetView);
-    pBackBuffer->Release();
+    g_device->CreateRenderTargetView(pBackBuffer, nullptr, &g_renderTargetView);//중간파라미터는 mipmap같은 뷰설정
+    pBackBuffer->Release();//mip map= 같은 텍스처를 여러해상도로 만들어놓은것
 
     return true;
+}
+
+void RenderFrame() {
+    // 방어 코드: 장치나 RTV가 없으면 그리지 않음
+    if (!g_context || !g_swapChain || !g_renderTargetView) return;
+
+    // 1. 화면 지우기
+    float clearColor[4] = { 0.1f, 0.2f, 0.4f, 1.0f }; 
+    g_context->ClearRenderTargetView(g_renderTargetView, clearColor);
+
+    // 2. 렌더 타겟 및 뷰포트 설정
+    g_context->OMSetRenderTargets(1, &g_renderTargetView, nullptr);
+    
+    D3D11_VIEWPORT vp = {};
+    vp.TopLeftX = 0.0f;
+    vp.TopLeftY = 0.0f;
+    vp.Width = g_width;
+    vp.Height = g_height;
+    vp.MinDepth = 0.0f;
+    vp.MaxDepth = 1.0f;
+    g_context->RSSetViewports(1, &vp);
+
+    // 3. 파이프라인 실행 (삼각형 그리기)
+    if (g_appContext) {
+        g_appContext->Render(g_context);
+    }
+
+    // 4. 화면 스왑
+    g_swapChain->Present(1, 0);
 }
 
 int main() {
@@ -64,7 +161,7 @@ int main() {
     RegisterClassEx(&wc);
 
     // 윈도우 창 생성
-    HWND hWnd = CreateWindowEx(0, className, "DirectX 11 Triangle", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720, NULL, NULL, hInstance, NULL);
+    HWND hWnd = CreateWindowEx(0, className, WINDOW_NAME, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, g_width, g_height, NULL, NULL, hInstance, NULL);
     ShowWindow(hWnd, SW_SHOW);
 
     // DirectX 초기화
@@ -74,7 +171,7 @@ int main() {
     }
 
     // Context (파이프라인 및 리소스) 초기화
-    g_appContext = Context::Create(g_device);
+    g_appContext = Context::Create(g_device, g_context);
     if (!g_appContext) {
         SPDLOG_ERROR("Context Create Failed");
         return -1;
@@ -86,35 +183,14 @@ int main() {
         if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
-        } else {
-            // ================== 렌더링 루프 시작 ==================
-            
-            // 1. 화면 지우기 (파란색 배경)
-            float clearColor[4] = { 0.1f, 0.2f, 0.4f, 1.0f }; // 색상을 살짝 밝게 조절했습니다
-            g_context->ClearRenderTargetView(g_renderTargetView, clearColor);
-
-            // [★ 수정된 핵심 부분] 그리기 직전에 도화지와 뷰포트를 명시적으로 바인딩
-            g_context->OMSetRenderTargets(1, &g_renderTargetView, nullptr);
-            
-            D3D11_VIEWPORT vp = {};
-            vp.TopLeftX = 0.0f;
-            vp.TopLeftY = 0.0f;
-            vp.Width = 1280.0f;
-            vp.Height = 720.0f;
-            vp.MinDepth = 0.0f;
-            vp.MaxDepth = 1.0f;
-            g_context->RSSetViewports(1, &vp);
-
-            // 2. 삼각형 그리기 (파이프라인 실행)
-            g_appContext->Render(g_context);
-
-            // 3. 화면 스왑 (Present)
-            g_swapChain->Present(1, 0);
-            
-            // ======================================================
+        } 
+        
+        else {
+            // start render loop
+            RenderFrame();
         }
     }
 
-    // 종료 시 COM 객체 메모리 해제 등은 스마트 포인터와 ComPtr이 자동으로 처리합니다.
     return 0;
 }
+

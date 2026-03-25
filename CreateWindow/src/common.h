@@ -8,6 +8,10 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 
 // ComPtr 타이핑 절약
 using Microsoft::WRL::ComPtr;
