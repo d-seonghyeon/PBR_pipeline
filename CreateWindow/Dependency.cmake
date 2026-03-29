@@ -51,5 +51,31 @@ ExternalProject_Add(
 )
 set(DEP_LIST ${DEP_LIST} dep_glm)
 
+# 4. Assimp
+ExternalProject_Add(
+    dep_assimp
+    GIT_REPOSITORY "https://github.com/assimp/assimp.git"
+    GIT_TAG "v5.3.1"
+    GIT_SHALLOW 1
+    CMAKE_ARGS
+        -DCMAKE_INSTALL_PREFIX=${DEP_INSTALL_DIR}
+        -DCMAKE_BUILD_TYPE=Debug
+        -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL          
+        -DASSIMP_BUILD_TESTS=OFF
+        -DASSIMP_BUILD_ASSIMP_TOOLS=OFF
+        -DASSIMP_BUILD_SAMPLES=OFF
+        -DASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT=OFF
+        -DASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT=OFF
+        -DASSIMP_BUILD_ZLIB=ON
+        -DASSIMP_BUILD_OBJ_IMPORTER=ON
+        -DASSIMP_BUILD_FBX_IMPORTER=ON
+        -DASSIMP_INJECT_DEBUG_POSTFIX=OFF
+        -DBUILD_SHARED_LIBS=OFF
+)
+set(DEP_LIBS ${DEP_LIBS} assimp-vc145-mt zlibstaticd)
+set(DEP_LIST ${DEP_LIST} dep_assimp)
+set(DEP_LIBS ${DEP_LIBS} assimp-vc145-mt)
+
+
 # Dependency.cmake 마지막 부분
 add_dependencies(${PROJECT_NAME} ${DEP_LIST})

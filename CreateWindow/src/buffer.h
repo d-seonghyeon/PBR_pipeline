@@ -17,6 +17,17 @@ public:
     size_t GetStride() const { return m_stride; }
     size_t GetCount() const { return m_count; }
     size_t GetTotalSize() const { return m_stride * m_count; } // 전체 크기 계산 편의 메서드
+    ID3D11Buffer* GetBuffer() const { return m_buffer.Get(); }
+
+    template<typename T>
+    void UpdateData(ID3D11DeviceContext* context, const T& data) {
+        D3D11_MAPPED_SUBRESOURCE mapped {};
+        context->Map(m_buffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+        memcpy(mapped.pData, &data, sizeof(T));
+        context->Unmap(m_buffer.Get(), 0);
+    }
+
+
 
 private:
     Buffer() = default;
@@ -28,5 +39,7 @@ private:
     uint32_t m_stride{ 0 };
     uint32_t m_count { 0 };
 };
+
+
 
 #endif

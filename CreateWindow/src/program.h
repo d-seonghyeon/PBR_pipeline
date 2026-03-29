@@ -13,6 +13,7 @@ public:
     
     void Use(ID3D11DeviceContext* context) const;
 
+
 private:
     Program() {}
     bool Init(ID3D11Device* device, ShaderPtr vs, ShaderPtr ps);
