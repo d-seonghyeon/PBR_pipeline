@@ -11,7 +11,7 @@ BufferUPtr Buffer::CreateWithData(ID3D11Device* device, uint32_t bindFlags,
     return std::move(buffer);
 }
 
-Buffer::~Buffer() {} // ComPtr을 사용하므로 glDeleteBuffers 같은 작업이 필요 없습니다.
+Buffer::~Buffer() {}
 
 bool Buffer::Init(ID3D11Device* device, uint32_t bindFlags, D3D11_USAGE usage, 
                   const void* data, uint32_t stride, uint32_t count) {

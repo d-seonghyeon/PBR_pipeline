@@ -219,7 +219,7 @@ void RenderFrame() {
 
 
     // 1. 화면 지우기
-    float clearColor[4] = { 0.1f, 0.2f, 0.4f, 1.0f }; 
+    float clearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f }; 
     g_context->ClearRenderTargetView(g_renderTargetView, clearColor);
 
     g_context->ClearDepthStencilView(g_depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
