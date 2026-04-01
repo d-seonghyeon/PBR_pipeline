@@ -47,8 +47,8 @@ static const int NUM_LIGHTS = 1;
 SphereLight GetLight(int idx) {
     SphereLight l;
     l.center   = float3(2, 2, 3);
-    l.radius   = 1.5f;
-    l.emission = float3(20.0f, 18.0f, 14.0f);
+    l.radius   = 1.0f;
+    l.emission = float3(100.0f, 95.0f, 80.0f);
     l._pad     = 0;
     return l;
 }
