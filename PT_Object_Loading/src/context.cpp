@@ -157,6 +157,20 @@ void Context::OnResize(ID3D11Device* device, uint32_t width, uint32_t height) {
     device->CreateTexture2D(&desc, nullptr, m_accumTexture.ReleaseAndGetAddressOf());
     device->CreateUnorderedAccessView(m_accumTexture.Get(), nullptr, m_accumUAV.ReleaseAndGetAddressOf());
     device->CreateShaderResourceView(m_accumTexture.Get(), nullptr, m_accumSRV.ReleaseAndGetAddressOf());
+/*
+    float newAspectRatio = static_cast<float>(width) / static_cast<float>(height);
+
+    // 2. CPU 측 상수 버퍼 데이터 구조체 갱신 (예시 데이터 구조)
+    m_globalData.g_aspectRatio = newAspectRatio;
+    m_globalData.g_fov = 0.785f; // 기존 FOV 유지 (약 45도)
+
+    // 3. (중요) GPU의 Constant Buffer(b0)를 다시 업데이트!
+    // 이 과정이 빠지면 셰이더는 계속 예전 종횡비로 광선을 쏩니다.
+    context->UpdateSubresource(m_constantBuffer.Get(), 0, nullptr, &m_globalData, 0, 0);
+
+    // 4. 패스 트레이싱 누적 초기화 (기존 코드)
+    m_frameCount = 0;
+*/
 
     m_frameCount = 0;
 }

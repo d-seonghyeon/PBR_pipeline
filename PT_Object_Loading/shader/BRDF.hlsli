@@ -49,7 +49,7 @@ float3 FresnelSchlick(float cosTheta, float3 F0) {
 // 난수 xi로 하프벡터 H를 GGX 분포에 따라 샘플링
 // -------------------------------------------------------
 float3 ImportanceSampleGGX(float2 xi, float3 N, float roughness) {
-    float a   = roughness * roughness;
+    float a   = roughness;
     float phi = 2.0f * PI * xi.x;
     float cosTheta = sqrt((1.0f - xi.y) / (1.0f + (a * a - 1.0f) * xi.y));
     float sinTheta = sqrt(1.0f - cosTheta * cosTheta);
